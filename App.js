@@ -1,3 +1,6 @@
+import "./firebase-api/firebase-init.js";
+import "./firebase-api/firebase-firestore.js";
+import { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View } from "react-native";
 import {
@@ -10,39 +13,95 @@ import {
 	VStack,
 } from "native-base";
 import { Ionicons } from "@expo/vector-icons";
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import {
+	auth,
+	createTaDumUserFromGoogle,
+	createTDID,
+	isTaDumUser,
+	signInTaDumUser,
+	signInWithGoogle,
+} from "./firebase-api/firebase-auth.js";
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-	apiKey: "AIzaSyB337gZNRJJDdV1FDqlyjUg9Ay8aVxfejI",
-	authDomain: "tadum-6ef5f.firebaseapp.com",
-	projectId: "tadum-6ef5f",
-	storageBucket: "tadum-6ef5f.appspot.com",
-	messagingSenderId: "995389943708",
-	appId: "1:995389943708:web:16db2f53b4613a70962259",
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getRedirectResult } from "firebase/auth";
+import { Provider, useDispatch, useSelector } from "react-redux";
+import store from "./redux/store";
 export default function App() {
+	useEffect(() => {
+		getRedirectResult(auth)
+			.then((gUser) => {
+				if (gUser == null) signInWithGoogle();
+				else {
+					const firebaseID = gUser.user.uid;
+					isTaDumUser(firebaseID).then((res) => {
+						if (!res) {
+							createTaDumUserFromGoogle(gUser.user);
+						}
+					});
+				}
+			})
+			.catch((err) => {
+				console.log(err);
+				signInWithGoogle();
+			});
+	}, []);
+
 	return (
-		<NativeBaseProvider>
-			<Flex h={"100%"} safeArea>
-				<Center flexGrow={1}>
-					<Text>Open up App.js to start working on your app!</Text>
-				</Center>
-				<TaDumStatusBar />
-			</Flex>
-			<StatusBar style="auto" />
-		</NativeBaseProvider>
+		<Provider store={store}>
+			<NativeBaseProvider>
+				<Flex h={"100%"} safeArea>
+					<Center flexGrow={1}>
+						<AppContent />
+					</Center>
+					<TaDumStatusBar />
+				</Flex>
+				<StatusBar style="auto" />
+			</NativeBaseProvider>
+		</Provider>
 	);
 }
 
-const TaDumStatusBarItem = (props) => {
+const AppContent = () => {
+	const appState = useSelector((state) => state.app.appState);
+	useEffect(() => {
+		console.log(appState);
+	}, [appState]);
+
+	return <Text>{appState}</Text>;
+};
+
+const TestRedux = () => {
+	const appTitle = useSelector((state) => state.app.appTitle);
+
+	useEffect(() => {
+		console.log(appTitle);
+	}, [appTitle]);
+
 	return (
-		<VStack alignItems={"center"} justifyContent={"center"} flex={1}>
+		<Box>
+			<Text>Hello</Text>
+		</Box>
+	);
+};
+
+const TaDumStatusBarItem = (props) => {
+	const dispatch = useDispatch();
+	const appState = useSelector((state) => state.app.appState);
+	const handlePress = () => {
+		dispatch({
+			type: "SET",
+			attrName: "appState",
+			payload: props.title.toUpperCase(),
+		});
+	};
+
+	return (
+		<VStack
+			alignItems={"center"}
+			justifyContent={"center"}
+			flex={1}
+			onStartShouldSetResponder={() => handlePress()}
+		>
 			<Ionicons name={"ios-" + props.icon + ""} size={17} />
 			<Text mt={1} fontSize={12}>
 				{props.title}
