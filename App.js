@@ -12,9 +12,7 @@ export default function App() {
         <Provider store={store}>
             <NativeBaseProvider>
                 <Flex h={"100%"} safeArea>
-                    <Center flexGrow={1}>
                         <Home />
-                    </Center>
                 </Flex>
                 <StatusBar style="auto" />
             </NativeBaseProvider>
